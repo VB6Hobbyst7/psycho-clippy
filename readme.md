@@ -1,0 +1,1 @@
+AIR app that bounces Clippy around and dispatches AttentionEvents.
