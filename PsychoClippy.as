@@ -1,26 +1,71 @@
 package {
-	import com.adobe.serialization.json.*;
+	import com.adobe.serialization.json.*
 	
-	import flash.display.*;
-	import flash.events.*;
-	import flash.net.*;
-	import flash.system.*;
-	import flash.utils.*;
+	import flash.display.*
+	import flash.events.*
+	import flash.net.*
+	import flash.system.*
+	import flash.text.*
+	import flash.utils.*
 	
 	public class PsychoClippy extends Sprite {
 		[Embed(source="../../clippy.png")]
 		private var Clippy:Class
 		
-		private var s:Socket
+		private var s:Socket,
+					nw:NativeWindow,
+					c:DisplayObject,
+					t:TextField
 		
 		public function PsychoClippy(){
-			frame1()
+			init()
 			psychoInit()
 			addEventListener(AttentionEvent.ATTENTION, onAttention)
 		}
 		
+		public function init():void {
+			stage.scaleMode = StageScaleMode.NO_SCALE
+			stage.align = StageAlign.TOP_LEFT
+			
+			c = new Clippy
+			addChild(c)
+			
+			nw = stage.nativeWindow
+			//nw.x = 0
+			//nw.y = 0
+			
+				
+			stage.addEventListener(MouseEvent.MOUSE_DOWN, onMouseDown)
+			
+			t = new TextField
+			t.text = 'It looks like you\'re not paying attention.\nWould you like to order coffee?'
+			t.textColor = 0
+			t.background = true
+			t.backgroundColor = 0xfeff97
+			t.width = 400
+			t.height = 250
+			t.wordWrap = true
+			t.multiline = true
+			c.x += t.width
+			
+			var tf:TextFormat = new TextFormat('Myriad Pro', 47, 0)
+			t.setTextFormat(tf)
+			addChild(t)
+			t.visible = false
+			
+			nw.width = c.width + t.width
+			nw.height = c.height + 30
+		}
+		
 		private function onAttention(e:AttentionEvent):void {
-			trace('AttentionEvent: ', e.attentionLevel)
+			var attention:uint = e.attentionLevel
+			trace('AttentionEvent: ', attention)
+			
+			if(attention < 50){
+				t.visible = true
+			} else {
+				t.visible = false
+			}
 		}
 		
 		private function psychoInit():void {
@@ -28,11 +73,16 @@ package {
 			s.connect('127.0.0.1', 13854)
 			s.addEventListener(Event.CONNECT, onConnect)
 			s.addEventListener(ProgressEvent.SOCKET_DATA, onData)
+			s.addEventListener(IOErrorEvent.IO_ERROR, onSocketError)
 		}
 		
 		private function onConnect(e:Event):void {
 			s.writeUTFBytes('{ "enableRawData": false, "format": "Json" }\r')
 			s.flush()
+		}
+		
+		private function onMouseDown(e:MouseEvent):void {
+			nw.startMove()
 		}
 		
 		private function onData(e:ProgressEvent):void {
@@ -50,42 +100,8 @@ package {
 			}
 		}
 		
-		public function frame1():void {
-			stage.scaleMode = StageScaleMode.NO_SCALE
-			stage.align = StageAlign.TOP_LEFT
-			
-			var c:DisplayObject = new Clippy
-			addChild(c)
-			
-			trace('!!', c.width, c.height)
-			
-			var nw:NativeWindow = stage.nativeWindow
-			nw.x = 0
-			nw.y = 0
-			nw.width = c.width
-			nw.height = c.height + 20
-			
-			var wx:int = Capabilities.screenResolutionX
-			var wy:int = Capabilities.screenResolutionY
-			
-			setInterval(change, 2000)
-			
-			var destX:int, destY:int
-			var sX:int, sY:int
-			
-			function change():void {
-				destX = Math.floor(Math.random() * (wx - nw.width))
-				destY = Math.floor(Math.random() * (wy - nw.height))
-				sX = nw.x
-				sY = nw.y
-			}
-			
-			addEventListener(Event.ENTER_FRAME, oef)
-			
-			function oef(e:Event):void {
-				nw.x += (1 / (stage.frameRate * 2)) * (destX - sX)
-				nw.y += (1 / (stage.frameRate * 2)) * (destY - sY)
-			}
+		private function onSocketError(e:IOErrorEvent):void {
+			trace('No MindWave detected')
 		}
 	}
 }
